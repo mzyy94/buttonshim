@@ -142,8 +142,12 @@ impl Buttons {
         self.buttons[4]
     }
 
-    pub fn update(&mut self) -> () {
-        let i2c = &self.i2c;
+    fn get_state(
+        i2c: &Arc<Mutex<I2c>>,
+        current: Vec<State>,
+        hold_threshold: Duration,
+    ) -> Vec<State> {
+        let mut buttons = vec![State::Released; 5];
 
         let state = i2c
             .lock()
@@ -153,10 +157,10 @@ impl Buttons {
 
         for i in 0..5 {
             if state & (0b00001 << i) == 0 {
-                self.buttons[i] = match self.buttons[i] {
+                buttons[i] = match current[i] {
                     State::Released => State::Pressed(Instant::now()),
                     State::Pressed(pressed) => {
-                        if pressed.elapsed() > self.hold_threshold {
+                        if pressed.elapsed() > hold_threshold {
                             State::Hold
                         } else {
                             State::Pressed(pressed)
@@ -165,8 +169,14 @@ impl Buttons {
                     State::Hold => State::Hold,
                 }
             } else {
-                self.buttons[i] = State::Released
+                buttons[i] = State::Released
             }
         }
+        buttons
+    }
+
+    pub fn update(&mut self) -> () {
+        let i2c = &self.i2c;
+        self.buttons = Self::get_state(i2c, self.buttons.clone(), self.hold_threshold);
     }
 }
