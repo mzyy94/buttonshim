@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 #[derive(Debug)]
 pub struct ButtonShim {
     pub led: Led,
+    pub buttons: Buttons,
 }
 
 impl ButtonShim {
@@ -27,6 +28,7 @@ impl ButtonShim {
 
         ButtonShim {
             led: Led::new(Arc::clone(&i2c)),
+            buttons: Buttons::new(Arc::clone(&i2c)),
         }
     }
 }
@@ -94,6 +96,63 @@ impl Led {
             self.next();
             self.set_bit(Self::PIN_LED_CLOCK, 1);
             b <<= 1;
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum State {
+    Released,
+    Pressed,
+}
+
+#[derive(Debug)]
+pub struct Buttons {
+    i2c: Arc<Mutex<I2c>>,
+    buttons: Vec<State>,
+}
+
+impl Buttons {
+    const REG_INPUT: u8 = 0x00;
+
+    fn new(i2c: Arc<Mutex<I2c>>) -> Self {
+        Buttons {
+            i2c,
+            buttons: vec![State::Released; 5],
+        }
+    }
+
+    pub fn a(&self) -> State {
+        self.buttons[0]
+    }
+    pub fn b(&self) -> State {
+        self.buttons[1]
+    }
+    pub fn c(&self) -> State {
+        self.buttons[2]
+    }
+    pub fn d(&self) -> State {
+        self.buttons[3]
+    }
+    pub fn e(&self) -> State {
+        self.buttons[4]
+    }
+
+    pub fn update(&mut self) -> () {
+        let i2c = &self.i2c;
+
+        let state = i2c
+            .lock()
+            .unwrap()
+            .smbus_read_byte(Self::REG_INPUT)
+            .unwrap();
+
+        for i in 0..5 {
+            if state & (0b00001 << i) == 0 {
+                self.buttons[i] = State::Pressed
+            } else {
+                self.buttons[i] = State::Released
+            }
         }
     }
 }
