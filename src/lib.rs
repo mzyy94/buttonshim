@@ -1,5 +1,6 @@
 use rppal::i2c::I2c;
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 #[derive(Debug)]
 pub struct ButtonShim {
@@ -103,13 +104,15 @@ impl Led {
 #[derive(Copy, Clone, Debug)]
 pub enum State {
     Released,
-    Pressed,
+    Pressed(Instant),
+    Hold,
 }
 
 #[derive(Debug)]
 pub struct Buttons {
     i2c: Arc<Mutex<I2c>>,
     buttons: Vec<State>,
+    hold_threshold: Duration,
 }
 
 impl Buttons {
@@ -119,6 +122,7 @@ impl Buttons {
         Buttons {
             i2c,
             buttons: vec![State::Released; 5],
+            hold_threshold: Duration::from_secs(2),
         }
     }
 
@@ -149,7 +153,17 @@ impl Buttons {
 
         for i in 0..5 {
             if state & (0b00001 << i) == 0 {
-                self.buttons[i] = State::Pressed
+                self.buttons[i] = match self.buttons[i] {
+                    State::Released => State::Pressed(Instant::now()),
+                    State::Pressed(pressed) => {
+                        if pressed.elapsed() > self.hold_threshold {
+                            State::Hold
+                        } else {
+                            State::Pressed(pressed)
+                        }
+                    }
+                    State::Hold => State::Hold,
+                }
             } else {
                 self.buttons[i] = State::Released
             }
