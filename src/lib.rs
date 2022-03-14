@@ -1,5 +1,6 @@
 use rppal::i2c::I2c;
 use std::sync::{Arc, Mutex};
+use std::thread;
 use std::time::{Duration, Instant};
 
 #[derive(Debug)]
@@ -111,7 +112,7 @@ pub enum State {
 #[derive(Debug)]
 pub struct Buttons {
     i2c: Arc<Mutex<I2c>>,
-    buttons: Vec<State>,
+    buttons: Arc<Mutex<Vec<State>>>,
     hold_threshold: Duration,
 }
 
@@ -121,25 +122,25 @@ impl Buttons {
     fn new(i2c: Arc<Mutex<I2c>>) -> Self {
         Buttons {
             i2c,
-            buttons: vec![State::Released; 5],
+            buttons: Arc::new(Mutex::new(vec![State::Released; 5])),
             hold_threshold: Duration::from_secs(2),
         }
     }
 
     pub fn a(&self) -> State {
-        self.buttons[0]
+        self.buttons.lock().unwrap()[0]
     }
     pub fn b(&self) -> State {
-        self.buttons[1]
+        self.buttons.lock().unwrap()[1]
     }
     pub fn c(&self) -> State {
-        self.buttons[2]
+        self.buttons.lock().unwrap()[2]
     }
     pub fn d(&self) -> State {
-        self.buttons[3]
+        self.buttons.lock().unwrap()[3]
     }
     pub fn e(&self) -> State {
-        self.buttons[4]
+        self.buttons.lock().unwrap()[4]
     }
 
     fn get_state(
@@ -177,6 +178,20 @@ impl Buttons {
 
     pub fn update(&mut self) -> () {
         let i2c = &self.i2c;
-        self.buttons = Self::get_state(i2c, self.buttons.clone(), self.hold_threshold);
+        let current: Vec<_> = self.buttons.lock().unwrap().clone();
+        *self.buttons.lock().unwrap() = Self::get_state(i2c, current, self.hold_threshold);
+    }
+
+    pub fn start_polling(&self, interval: Duration) {
+        let i2c = Arc::clone(&self.i2c);
+        let buttons = Arc::clone(&self.buttons);
+        let hold_threshold = self.hold_threshold;
+
+        thread::spawn(move || loop {
+            let current = buttons.lock().unwrap().clone();
+            *buttons.lock().unwrap() = Self::get_state(&i2c, current, hold_threshold);
+
+            thread::sleep(interval)
+        });
     }
 }
