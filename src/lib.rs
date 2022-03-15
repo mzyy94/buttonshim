@@ -78,6 +78,11 @@ impl Led {
         self.write_byte(0);
     }
 
+    pub fn set_pixel(&mut self, r: u8, g: u8, b: u8) -> Result<usize, rppal::i2c::Error> {
+        self.set_color(r, g, b);
+        self.apply()
+    }
+
     fn next(&mut self) {
         if self.buffer.len() == 0 {
             self.buffer = vec![0u8]
