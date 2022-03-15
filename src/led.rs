@@ -4,30 +4,40 @@ use std::sync::{Arc, Mutex};
 #[derive(Clone, Debug)]
 pub struct Led {
     i2c: Arc<Mutex<I2c>>,
-    buffer: Vec<u8>,
+    buffer: ColorBuffer,
 }
 
+#[derive(Clone, Debug, Default)]
+struct ColorBuffer(Vec<u8>);
+
 impl Led {
-    const REG_OUTPUT: u8 = 0x01;
-
-    const PIN_LED_DATA: u8 = 7;
-    const PIN_LED_CLOCK: u8 = 6;
-
     pub fn new(i2c: Arc<Mutex<I2c>>) -> Self {
         Led {
             i2c,
-            buffer: vec![],
+            buffer: ColorBuffer::default(),
         }
     }
 
     pub fn apply(&self) -> Result<usize, rppal::i2c::Error> {
         let i2c = &self.i2c;
 
-        i2c.lock().unwrap().write(&self.buffer)
+        i2c.lock().unwrap().write(&self.buffer.0)
     }
 
-    pub fn set_color(&mut self, r: u8, g: u8, b: u8) {
-        self.buffer = vec![Self::REG_OUTPUT, 0u8];
+    pub fn set_pixel(&mut self, r: u8, g: u8, b: u8) -> Result<usize, rppal::i2c::Error> {
+        self.buffer.set_color(r, g, b);
+        self.apply()
+    }
+}
+
+impl ColorBuffer {
+    const REG_OUTPUT: u8 = 0x01;
+
+    const PIN_LED_DATA: u8 = 7;
+    const PIN_LED_CLOCK: u8 = 6;
+
+    fn set_color(&mut self, r: u8, g: u8, b: u8) {
+        self.0 = vec![Self::REG_OUTPUT, 0u8];
         self.write_byte(0);
         self.write_byte(0);
         self.write_byte(0xef);
@@ -38,25 +48,20 @@ impl Led {
         self.write_byte(0);
     }
 
-    pub fn set_pixel(&mut self, r: u8, g: u8, b: u8) -> Result<usize, rppal::i2c::Error> {
-        self.set_color(r, g, b);
-        self.apply()
-    }
-
     fn next(&mut self) {
-        if self.buffer.len() == 0 {
-            self.buffer = vec![0u8]
+        if self.0.len() == 0 {
+            self.0 = vec![0u8]
         } else {
-            self.buffer.push(*self.buffer.last().unwrap())
+            self.0.push(*self.0.last().unwrap())
         }
     }
 
     fn set_bit(&mut self, pin: u8, value: u8) {
-        let len = self.buffer.len();
+        let len = self.0.len();
         if value != 0 {
-            self.buffer[len - 1] |= 1 << pin;
+            self.0[len - 1] |= 1 << pin;
         } else {
-            self.buffer[len - 1] &= 0xff ^ (1 << pin);
+            self.0[len - 1] &= 0xff ^ (1 << pin);
         }
     }
 

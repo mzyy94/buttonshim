@@ -42,7 +42,6 @@ impl ButtonShim {
     }
 
     pub fn set_pixel(&mut self, r: u8, g: u8, b: u8) -> Result<usize, rppal::i2c::Error> {
-        self.led.set_color(r, g, b);
-        self.led.apply()
+        self.led.set_pixel(r, g, b)
     }
 }
