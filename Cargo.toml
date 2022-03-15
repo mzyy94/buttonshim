@@ -2,8 +2,11 @@
 name = "buttonshim"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Rust library and examples for the Pimoroni Button SHIM"
+license = "MIT"
+repository = "https://github.com/mzyy94/buttonshim/"
+keywords = ["pimoroni", "button-shim", "raspberry", "pi"]
+categories = ["embedded", "hardware-support"]
 
 [dependencies]
 rppal = "0.13.1"
