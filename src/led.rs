@@ -53,11 +53,7 @@ impl ColorBuffer {
     }
 
     fn next(&mut self) {
-        if self.0.len() == 0 {
-            self.0 = vec![0u8]
-        } else {
-            self.0.push(*self.0.last().unwrap())
-        }
+        self.0.push(*self.0.last().unwrap())
     }
 
     fn set_bit(&mut self, pin: u8, value: u8) {
