@@ -33,6 +33,11 @@ impl ButtonShim {
             buttons: Buttons::new(Arc::clone(&i2c)),
         }
     }
+
+    pub fn set_pixel(&mut self, r: u8, g: u8, b: u8) -> Result<usize, rppal::i2c::Error> {
+        self.led.set_color(r, g, b);
+        self.led.apply()
+    }
 }
 
 #[derive(Debug)]
