@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ButtonShim {
     pub led: Led,
     pub buttons: Buttons,
@@ -41,7 +41,7 @@ impl ButtonShim {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Led {
     i2c: Arc<Mutex<I2c>>,
     buffer: Vec<u8>,
@@ -142,7 +142,7 @@ pub enum State {
     Hold,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Buttons {
     i2c: Arc<Mutex<I2c>>,
     buttons: Arc<Mutex<Vec<State>>>,
