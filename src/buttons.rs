@@ -33,6 +33,22 @@ pub enum State {
     Hold,
 }
 
+impl State {
+    fn next_state(self, hold_threshold: Duration) -> Self {
+        match self {
+            State::Released => State::Pressed(Instant::now()),
+            State::Pressed(pressed) => {
+                if pressed.elapsed() > hold_threshold {
+                    State::Hold
+                } else {
+                    State::Pressed(pressed)
+                }
+            }
+            State::Hold => State::Hold,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Buttons {
     i2c: Arc<Mutex<I2c>>,
@@ -84,17 +100,7 @@ impl Buttons {
 
         for i in 0..5 {
             if state & (0b00001 << i) == 0 {
-                buttons[i] = match current[i] {
-                    State::Released => State::Pressed(Instant::now()),
-                    State::Pressed(pressed) => {
-                        if pressed.elapsed() > hold_threshold {
-                            State::Hold
-                        } else {
-                            State::Pressed(pressed)
-                        }
-                    }
-                    State::Hold => State::Hold,
-                }
+                buttons[i] = current[i].next_state(hold_threshold)
             } else {
                 buttons[i] = State::Released
             }
