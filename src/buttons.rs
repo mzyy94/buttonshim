@@ -31,12 +31,13 @@ pub enum State {
     Released,
     Pressed(Instant),
     Hold,
+    Clicked,
 }
 
 impl State {
-    fn next_state(self, hold_threshold: Duration) -> Self {
+    fn pressing(self, hold_threshold: Duration) -> Self {
         match self {
-            State::Released => State::Pressed(Instant::now()),
+            State::Released | State::Clicked => State::Pressed(Instant::now()),
             State::Pressed(pressed) => {
                 if pressed.elapsed() > hold_threshold {
                     State::Hold
@@ -45,6 +46,19 @@ impl State {
                 }
             }
             State::Hold => State::Hold,
+        }
+    }
+
+    fn releasing(self, hold_threshold: Duration) -> Self {
+        match self {
+            State::Pressed(pressed) => {
+                if pressed.elapsed() < hold_threshold {
+                    State::Clicked
+                } else {
+                    State::Released
+                }
+            }
+            _ => State::Released,
         }
     }
 }
@@ -100,9 +114,9 @@ impl Buttons {
 
         for i in 0..5 {
             if state & (0b00001 << i) == 0 {
-                buttons[i] = current[i].next_state(hold_threshold)
+                buttons[i] = current[i].pressing(hold_threshold)
             } else {
-                buttons[i] = State::Released
+                buttons[i] = current[i].releasing(hold_threshold)
             }
         }
         buttons
@@ -151,7 +165,7 @@ mod tests {
     fn change_state() {
         let state = State::Released;
 
-        let state = state.next_state(Duration::from_millis(2000));
+        let state = state.pressing(Duration::from_millis(2000));
         assert!(match state {
             State::Pressed(_) => true,
             _ => false,
@@ -159,7 +173,15 @@ mod tests {
 
         thread::sleep(Duration::from_millis(10));
 
-        let state = state.next_state(Duration::from_millis(1));
+        let state = state.pressing(Duration::from_millis(1));
         assert_eq!(state, State::Hold);
+
+        let state = state.releasing(Duration::from_millis(1));
+        assert_eq!(state, State::Released);
+
+        let state = state.pressing(Duration::from_millis(100));
+        thread::sleep(Duration::from_millis(10));
+        let state = state.releasing(Duration::from_millis(100));
+        assert_eq!(state, State::Clicked);
     }
 }
