@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 #[derive(Clone, Debug)]
 pub struct Led {
     i2c: Arc<Mutex<I2c>>,
-    buffer: ColorBuffer,
+    color: ColorBuffer,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -14,18 +14,18 @@ impl Led {
     pub fn new(i2c: Arc<Mutex<I2c>>) -> Self {
         Led {
             i2c,
-            buffer: ColorBuffer::default(),
+            color: ColorBuffer::default(),
         }
     }
 
     pub fn apply(&self) -> Result<usize, rppal::i2c::Error> {
         let i2c = &self.i2c;
 
-        i2c.lock().unwrap().write(&self.buffer.0)
+        i2c.lock().unwrap().write(self.color.buffer())
     }
 
     pub fn set_pixel(&mut self, r: u8, g: u8, b: u8) -> Result<usize, rppal::i2c::Error> {
-        self.buffer.set_color(r, g, b);
+        self.color.set_color(r, g, b);
         self.apply()
     }
 }
@@ -35,6 +35,10 @@ impl ColorBuffer {
 
     const PIN_LED_DATA: u8 = 7;
     const PIN_LED_CLOCK: u8 = 6;
+
+    fn buffer(&self) -> &Vec<u8> {
+        &self.0
+    }
 
     fn set_color(&mut self, r: u8, g: u8, b: u8) {
         self.0 = vec![Self::REG_OUTPUT, 0u8];
