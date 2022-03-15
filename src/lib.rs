@@ -21,7 +21,11 @@ impl ButtonShim {
     const REG_CONFIG: u8 = 0x03;
 
     pub fn new() -> Result<Self, rppal::i2c::Error> {
-        let mut i2c = I2c::new()?;
+        let i2c = I2c::new()?;
+        Self::with_i2c(i2c)
+    }
+
+    pub fn with_i2c(mut i2c: I2c) -> Result<Self, rppal::i2c::Error> {
         i2c.set_timeout(100)?;
         i2c.set_slave_address(Self::ADDR)?;
 
