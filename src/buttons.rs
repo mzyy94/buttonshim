@@ -142,3 +142,24 @@ impl Buttons {
         self.sender = Some(sender);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn change_state() {
+        let state = State::Released;
+
+        let state = state.next_state(Duration::from_millis(2000));
+        assert!(match state {
+            State::Pressed(_) => true,
+            _ => false,
+        });
+
+        thread::sleep(Duration::from_millis(10));
+
+        let state = state.next_state(Duration::from_millis(1));
+        assert_eq!(state, State::Hold);
+    }
+}
