@@ -15,7 +15,7 @@ fn main() {
     "#
     );
 
-    let mut buttonshim = ButtonShim::new();
+    let mut buttonshim = ButtonShim::new().unwrap();
     let (tx, rx) = mpsc::channel();
     buttonshim.buttons.set_sender(tx);
 

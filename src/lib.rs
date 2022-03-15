@@ -20,22 +20,21 @@ impl ButtonShim {
     const REG_POLARITY: u8 = 0x02;
     const REG_CONFIG: u8 = 0x03;
 
-    pub fn new() -> Self {
-        let mut i2c = I2c::new().unwrap();
-        i2c.set_timeout(100).unwrap();
-        i2c.set_slave_address(Self::ADDR).unwrap();
+    pub fn new() -> Result<Self, rppal::i2c::Error> {
+        let mut i2c = I2c::new()?;
+        i2c.set_timeout(100)?;
+        i2c.set_slave_address(Self::ADDR)?;
 
-        i2c.smbus_write_byte(Self::REG_CONFIG, 0b00011111).unwrap();
-        i2c.smbus_write_byte(Self::REG_POLARITY, 0b00000000)
-            .unwrap();
-        i2c.smbus_write_byte(Self::REG_OUTPUT, 0b00000000).unwrap();
+        i2c.smbus_write_byte(Self::REG_CONFIG, 0b00011111)?;
+        i2c.smbus_write_byte(Self::REG_POLARITY, 0b00000000)?;
+        i2c.smbus_write_byte(Self::REG_OUTPUT, 0b00000000)?;
 
         let i2c = Arc::new(Mutex::new(i2c));
 
-        ButtonShim {
+        Ok(ButtonShim {
             led: Led::new(Arc::clone(&i2c)),
             buttons: Buttons::new(Arc::clone(&i2c)),
-        }
+        })
     }
 
     pub fn set_pixel(&mut self, r: u8, g: u8, b: u8) -> Result<usize, rppal::i2c::Error> {
