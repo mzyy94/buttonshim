@@ -83,6 +83,10 @@ impl Buttons {
         }
     }
 
+    pub fn set_hold_threshold(&mut self, hold_threshold: Duration) {
+        self.hold_threshold = hold_threshold;
+    }
+
     pub fn a(&self) -> State {
         self.buttons.lock().unwrap()[0]
     }
